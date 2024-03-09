@@ -1,0 +1,73 @@
+/*
+	EZMorseBeacon.ino
+	Copyright 2022 A. Johnson
+  Date: Nov 30 2022
+	
+	This program is for arduino type microcontrollers and is designed to act as a beacon when paired with a radio
+	It does this by outputing morse code on a PWM pin and keying PTT on another pin. This way, you can use it as a beacon, fox, etc.
+	Please ensure your hardware design prevents damage to the radio or micro. It is strongly recommended the outputs are isolated from the radio
+	by means of an optocoupler (PTT) or isolation/blocking capacitor (Audio). A low pass filter (capacitor between pin and ground) is recommended
+	on the audio line to reduce the higher harmonics of the square wave.
+	
+	This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+	
+
+*/
+
+
+#include "EZMorse.h"
+
+//Hardware defines
+//Note: AUD_PIN must be a PWM capable pin
+
+#define AUD_PIN PIN_PB0
+#define PTT_PIN PIN_PB1
+#define DELAY_BETWEEN_XMIT 5000
+
+unsigned long tmr1=0;
+int stepTone=1;
+EZMorse morse = EZMorse(PTT_PIN,AUD_PIN);
+String myCall="CALLSIGN FOX K";
+
+void setup() {
+  morse.begin();
+  digitalWrite(PTT_PIN,LOW);
+  morse.setDitLengthWPM(15);
+  analogWrite(AUD_PIN,0);
+  delay(2000);
+}
+
+void loop() {
+
+  if(morse.isDone()&&millis()-tmr1>DELAY_BETWEEN_XMIT)
+  {
+    tmr1=millis();
+
+    //Alternate between sending myCall string and steady tone every DELAY_BETWEEN_XMIT seconds
+    if(stepTone==0)
+    {
+      morse.sendStr(myCall);
+      stepTone=1;
+    }
+    else
+    {
+      morse.sendToneFor(5000);
+      stepTone=0;
+    }
+  }
+
+  morse.loop();
+  
+  
+}
